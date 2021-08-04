@@ -11,12 +11,13 @@ import time
 import os
 import copy
 
+from torchsampler import ImbalancedDatasetSampler
 from ignite.engine import Engine, create_supervised_evaluator
 from ignite.metrics import ConfusionMatrix
 import seaborn as sns
 
 
-def train_model(model, dataloaders, criterion, optimizer, num_epochs=25, is_inception=False):
+def train_model(model, dataloaders, criterion, optimizer, device, num_epochs=25, is_inception=False):
     since = time.time()
 
     val_acc_history = []
@@ -101,6 +102,45 @@ def set_parameter_requires_grad(model, feature_extracting):
         for param in model.parameters():
             param.requires_grad = False
 
+def get_input_size(model_name):
+    input_size = 0
+
+    if model_name == "resnet":
+        """ Resnet18
+        """
+        input_size = 224
+
+    elif model_name == "alexnet":
+        """ Alexnet
+        """
+        input_size = 224
+
+    elif model_name == "vgg":
+        """ VGG11_bn
+        """
+        input_size = 224
+
+    elif model_name == "squeezenet":
+        """ Squeezenet
+        """
+        input_size = 224
+
+    elif model_name == "densenet":
+        """ Densenet
+        """
+        input_size = 224
+
+    elif model_name == "inception":
+        """ Inception v3
+        Be careful, expects (299,299) sized images and has auxiliary output
+        """
+        input_size = 299
+
+    else:
+        raise ValueError("Invalid model name, exiting...")
+
+
+    return input_size
 
 
 def initialize_model(model_name, num_classes, feature_extract, use_pretrained=True):
@@ -169,8 +209,8 @@ def initialize_model(model_name, num_classes, feature_extract, use_pretrained=Tr
         input_size = 299
 
     else:
-        print("Invalid model name, exiting...")
-        exit()
+        raise ValueError("Invalid model name, exiting...")
+
 
     return model_ft, input_size
 
@@ -197,12 +237,17 @@ def get_data_sets(input_size, data_dir, batch_size):
     image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms[x]) for x in ['train', 'val']}
     # Create training and validation dataloaders
     dataloaders_dict = {
-        x: torch.utils.data.DataLoader(image_datasets[x], batch_size=batch_size, shuffle=True, num_workers=4) for x in
+        x: torch.utils.data.DataLoader(
+            image_datasets[x], 
+            batch_size=batch_size, 
+            shuffle=True, 
+            #sampler=ImbalancedDatasetSampler(image_datasets[x]),
+            num_workers=4) for x in
         ['train', 'val']}
     return dataloaders_dict
 
 
-def set_training_mode(model_ft, feature_extract):
+def set_training_mode(model_ft, feature_extract, device):
 
     # Send the model to GPU
     model_ft = model_ft.to(device)

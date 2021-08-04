@@ -21,6 +21,7 @@ def load_data_sets(data_dir, img_height, img_width, batch_size):
       seed=123,
       image_size=(img_height, img_width),
       batch_size=batch_size)
+    return train_ds, val_ds
 
 data_augmentation = keras.Sequential(
     [
@@ -33,7 +34,7 @@ def load_model(model_name, num_classes):
     if model_name == "xception":
         base_model = keras.applications.Xception(
             weights="imagenet",  # Load weights pre-trained on ImageNet.
-            input_shape=(150, 150, 3),
+            input_shape=(300, 300, 3),
             include_top=False,
         )  # Do not include the ImageNet classifier at the top.
 
@@ -41,7 +42,7 @@ def load_model(model_name, num_classes):
         base_model.trainable = False
 
         # Create new model on top
-        inputs = keras.Input(shape=(150, 150, 3))
+        inputs = keras.Input(shape=(300, 300, 3))
         # x = data_augmentation(inputs)  # Apply random data augmentation
 
         # Pre-trained Xception weights requires that input be normalized
